@@ -1,7 +1,7 @@
 import unittest
 import os
 import csv
-from main import read_json, match_operator, calculate_risk_score, generate_csv
+from main import PhoneCall, PhoneOperator, DataProcessor
 
 phone_json_string_test = ''' {
   "data\": [
@@ -64,32 +64,35 @@ class TestPhoneCallProcessing(unittest.TestCase):
             f.close()
         write_tmp_file(self.TMP_TEST_CALLS_JSON_PATH, phone_json_string_test)
         write_tmp_file(self.TMP_TEST_OPERATORS_JSON_PATH, operator_json_string_test)
-        self.calls_data = read_json(self.TMP_TEST_CALLS_JSON_PATH)['data']
-        self.operators_data = read_json(self.TMP_TEST_OPERATORS_JSON_PATH)['data']
+        self.processor = DataProcessor(self.TMP_TEST_CALLS_JSON_PATH, self.TMP_TEST_OPERATORS_JSON_PATH)
+        self.processor.load_json_data()
+        self.processor.add_operators_to_calls()
+        self.processor.write_calls_csv(self.TMP_TEST_REPORT_CSV_PATH)
+
+
 
     def test_read_json(self):
         # Test reading JSON files
-        self.assertIsInstance(self.calls_data, list)
-        self.assertIsInstance(self.operators_data, list)
-        self.assertEqual(len(self.calls_data), 3, "error in read of calls json")
-        self.assertEqual(len(self.operators_data), 1, "error in read of operators json")
+        self.assertIsInstance(self.processor.phoneCalls, list)
+        self.assertIsInstance(self.processor.phoneOperators, list)
+        self.assertEqual(len(self.processor.phoneCalls), 3, "error in read of calls json")
+        self.assertEqual(len(self.processor.phoneOperators), 1, "error in read of operators json")
 
     def test_match_operator(self):
         # Test matching operator
-        operator = match_operator(self.calls_data[2]['attributes']['number'], self.operators_data)
-        self.assertEqual(operator, "OperatorNameTest", "operator does not match correctly to the phone number")
-        operator = match_operator('+44000000000', self.operators_data)
-        self.assertNotEqual(operator, "OperatorNameTest", "operator matches incorrectly to the phone number")
+        operator_first_case = self.processor.phoneCalls[0].operatorName
+        self.assertNotEqual(operator_first_case, "OperatorNameTest", "operator matches incorrectly the phone number")
+        operator_third_case = self.processor.phoneCalls[2].operatorName
+        self.assertEqual(operator_third_case, "OperatorNameTest", "operator does not match correctly the phone number")
 
     def test_calculate_risk_score(self):
         # Test calculating risk score
-        self.assertEqual(calculate_risk_score(self.calls_data[0]), 0.3)
-        self.assertEqual(calculate_risk_score(self.calls_data[1]), 1.0)
-        self.assertEqual(calculate_risk_score(self.calls_data[2]), 0.0)
+        self.assertEqual(self.processor.phoneCalls[0].riskScore, 0.3, "Risk score wrong for call at index 0")
+        self.assertEqual(self.processor.phoneCalls[1].riskScore, 1.0, "Risk score wrong for call at index 1")
+        self.assertEqual(self.processor.phoneCalls[2].riskScore, 0.0, "Risk score wrong for call at index 2")
 
     def test_generate_csv(self):
         # Test generating CSV
-        generate_csv(self.calls_data, self.operators_data, self.TMP_TEST_REPORT_CSV_PATH)
         self.assertTrue(os.path.exists(self.TMP_TEST_REPORT_CSV_PATH),
                         f"File '{self.TMP_TEST_REPORT_CSV_PATH}' does not exist.")
         # Add assertions to verify the generated CSV content or file existence
