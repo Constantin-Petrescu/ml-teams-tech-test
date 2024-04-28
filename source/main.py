@@ -33,10 +33,10 @@ def calculate_risk_score(call):
         return round(call['attributes']['riskScore'], 1)
 
 
-def generate_csv(calls_data, operators_data):
+def generate_csv(calls_data, operators_data, filename):
     calls_data.sort(key=lambda x: datetime.datetime.strptime(x['attributes']['date'], "%Y-%m-%dT%H:%M:%SZ"))
 
-    with open('report.csv', 'w') as csvfile:
+    with open(filename, 'w') as csvfile:
         fieldnames = ['id', 'date', 'number', 'operator', 'riskScore']
         writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
 
@@ -59,4 +59,4 @@ def generate_csv(calls_data, operators_data):
 if __name__ == "__main__":
     calls_data = read_json('../data/calls.json')['data']
     operators_data = read_json('../data/operators.json')['data']
-    generate_csv(calls_data, operators_data)
+    generate_csv(calls_data, operators_data, '../output/report.csv')
